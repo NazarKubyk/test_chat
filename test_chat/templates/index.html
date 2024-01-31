@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %} Home {% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <h3>Welcome to Chat</h3>
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="w-100">
+                <div class="mb-3">
+                    <label for="chatNumberInput" class="form-label">Enter Chat Number:</label>
+                    <input type="number" class="form-control" id="chatNumberInput">
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <button id="addChat" class="btn btn-primary">Connect</button>
+                    </div>
+                    <div class="col" id="connectMessage"></div>
+                </div>
+                <div class="mb-3">
+                    <label for="textMessage" class="form-label">Enter your message:</label>
+                    <input type="text" class="form-control" id="textMessage">
+                </div>
+                <button id="addMessage" class="btn btn-primary">Send</button>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div id="messages" class="mt-4"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js_script %}
+<script>
+    let chatSocket;
+    document.querySelector('#addChat').onclick = function (e) {
+        const chatNumber = document.querySelector('#chatNumberInput').value;
+        if (chatNumber) {
+            chatSocket = new WebSocket(
+                'ws://'
+                + window.location.host
+                + '/ws/chat/'
+                + chatNumber + '/'
+            );
+        }
+
+        if (chatSocket !== undefined) {
+            document.querySelector('#connectMessage').innerHTML = '<h5>Connected to chat ' + chatNumber + '</h5>';
+        } else {
+            document.querySelector('#connectMessage').innerHTML = '<h5>Incorrect chat number</h5>';
+        }
+
+        console.log(chatSocket)
+        chatSocket.onopen = function (e) {
+            console.log('Chat socket successfully connected.');
+        };
+
+        chatSocket.onclose = function (e) {
+            console.log('Chat socket closed unexpectedly');
+        };
+
+        chatSocket.onmessage = function (e) {
+            const data = JSON.parse(e.data);
+            const message = data.message;
+
+            setMessage(message);
+        };
+    }
+    document.querySelector('#addMessage').onclick = function (e) {
+        const messageInputDom = document.querySelector('#textMessage');
+        const message = messageInputDom.value;
+        if (chatSocket === undefined) {
+            alert('Please connect to chat first');
+            return;
+        }
+        console.log(message);
+        chatSocket.send(JSON.stringify({
+            'message': message
+        }));
+
+        messageInputDom.value = '';
+    };
+
+    function setMessage(message) {
+        var div = document.createElement('div');
+        div.className = 'alert alert-secondary fade show';
+        div.setAttribute('role', 'alert');
+
+        var message_text = document.createTextNode(message);
+        div.appendChild(message_text);
+
+        var container = document.getElementById('messages');
+        container.appendChild(div);
+    }
+
+</script>
+{% endblock %}
